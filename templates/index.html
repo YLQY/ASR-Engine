@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>LainSpeech-语音识别引擎</title>
+  <!--<link rel="shortcut icon" href="./static/favicon.ico">-->
+  <script src="../static/js/jquery-3.2.1.min.js"></script>
+  <script src="../static/js/recorder/recorder-core.js"></script>
+  <script src="../static/js/recorder/extensions/lib.fft.js"></script>
+  <script src="../static/js/recorder/extensions/frequency.histogram.view.js"></script>
+  <script src="../static/js/recorder/engine/pcm.js"></script>
+  <script src="../static/js/SoundRecognizer.js"></script>
+  <link rel="stylesheet" href="../static/css/style.css">
+  <link rel="stylesheet" href="../static/css/font-awesome.min.css">
+</head>
+
+<body>
+  <div class="asr-content">
+    <div class="audio-banner">
+      <div class="weaper">
+        <div class="text-content">
+          <p><span class="title">LainSpeech简介</span></p>
+          <p class="con-container">
+            <span class="con">LainSpeech想要帮助每个人都能快速入门语音，扫除一切困难，避免走上弯路。并且希望引导大家思考，更多好的课程，请B站关注y_Lain与LainSpeech，感谢大家支持~</span>
+          </p>
+        </div>
+        <div class="img-con">
+          <img src="../static/image/voice-pic.png" alt="" />
+        </div>
+      </div>
+    </div>
+    <div class="audio-experience">
+      <div class="asr-box">
+        <h2>实时语音识别</h2>
+        <div id="client-word-recorder" style="position: relative;">
+          <div class="pd">
+            <div style="text-align:center;height:20px;width:100%;
+                        border:0px solid #bcbcbc;color:#000;box-sizing: border-box;display:inline-block"
+              class="recwave">
+            </div>
+          </div>
+        </div>
+        <div class="voice-container">
+          <div class="voice-input">
+            <span>模型：</span>
+            <select id="asr_engine" style="border:1px solid #e5e5e5; outline:none;font-size:15px;height:41px;padding:10px;">
+              <option value="whisper-large-v3-turbo-ct2">whisper-large-v3-turbo-ct2</option>
+              <option value="whisper-large-v3-turbo">whisper-large-v3-turbo</option>
+              <option value="whisper-tiny">whisper-tiny</option>
+              <option value="paraformer">paraformer</option>
+              <option value="sensevoice">sensevoice</option>
+            </select>
+            <div class="start-voice">
+              <button type="primary" class="voice-btn" style="margin-right:10px;background-color:#da65c0;" onclick="upload_hot_words.click()">
+                <span class="fa fa-file-o"> 上传热词</span>
+              </button>
+              <input type="file" id="upload_hot_words" style="display:none;" accept=".txt" >
+            </div>
+            <span>WebSocket URL：</span>
+            <input type="text" id="socketUrl" class="websocket-url" value="ws://172.16.31.48:10086"
+              placeholder="请输入服务器地址，如：ws://172.16.31.48:10086">
+            <div class="start-voice">
+              <button type="primary" id="beginBtn" class="voice-btn">
+                <span class="fa fa-microphone"> 开始识别</span>
+              </button>
+              <button type="primary" id="endBtn" class="voice-btn end">
+                <span class="fa fa-microphone-slash"> 结束识别</span>
+              </button>
+              <div id="timeBox" class="time-box flex-display-1">
+                <span class="total-time">识别中，<i id="timeCount"></i> 秒</span>
+              </div>
+            </div>
+          </div>
+          <div class="voice">
+            <div class="result-text" id="resultPanel">此处显示识别结果</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="audio-advantage">
+      <div class="asr-advantage">
+        <h2>核心特点</h2>
+        <ul class="service-item-content">
+          <li class="icons-advantage-mb35">
+            <i class="icons icons-advantage icons-advantage-1"> </i>
+            <div class="service-item-content-title">手把手教学</div>
+            <div class="service-item-content-desc">保证每个人都可以听懂，一步一步成为行业大牛 <br> 一行一行代码的讲解。</div>
+          </li>
+          <li class="icons-advantage-mb35">
+            <i class="icons icons-advantage icons-advantage-3"> </i>
+            <div class="service-item-content-title">完整的语音识别学习路线</div>  
+            <div class="service-item-content-desc">从Kaldi、WFST解码、CTC、Wenet、Whisper、解码时添加热词、VAD到第一代语音识别引擎，一步一个脚印，探索语音识别的技术路线</div>
+          </li>
+          <li>
+            <i class="icons icons-advantage icons-advantage-2"> </i>
+            <div class="service-item-content-title">通俗易懂的理解</div>  
+            <div class="service-item-content-desc">LainSpeech从不用听不懂的名词去解释听不懂的名词，喜欢用大白话去解释那些故弄玄虚的高端术语。</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="audio-scene-con">
+      <div class="audio-scene">
+        <h2>联系我们</h2>
+        <ul class="service-item-content">
+          <li>
+            <div class="service-item-content-desc">QQ群</div>
+            <img src="../static/image/1.jpg" alt="" />
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="voice-footer">更多好的课程，请B站关注y_Lain与LainSpeech</div>
+  </div>
+  <script>
+    var asr_engine="whisper-large-v3-turbo-ct2"
+    $(function(){
+      //asr引擎的改变事件
+      $("#asr_engine").change(function(){
+        let res=$("#asr_engine").val()
+        asr_engine=res
+      })
+      //热词的上传改变事件
+      $("#upload_hot_words").change(function(){
+         //拿到文件
+         var file = this.files[0]
+         var formData = new FormData()
+         formData.append("hot_word_file",file)
+         // 给服务器发请求
+         fetch('/upload_hot_words',{
+           method:'POST',
+           body: formData
+         }).then(response => response.text()).then(data => {
+           alert(data)
+         }).catch(error => {
+           alert("上传失败")
+         })
+      })
+    })
+        
+
+    var wenetWs = null
+    var timeLoop = null
+    var result = ""
+    $(document).ready(function () {
+      $('#beginBtn').on('click', startRecording)
+      $('#endBtn').on('click', stopRecording)
+    })
+
+    function openWebSocket(url) {
+      if ("WebSocket" in window) {
+        wenetWs = new WebSocket(url)
+        wenetWs.onopen = function () {
+          console.log("Websocket 连接成功，开始识别")
+          wenetWs.send(JSON.stringify({
+            "asr_engine":asr_engine,
+            "signal": "start",
+            "nbest": 1,
+            "continuous_decoding": true
+          }))
+        }
+        wenetWs.onmessage = function (_msg) { parseResult(_msg.data) }
+        wenetWs.onclose = function () {
+          console.log("WebSocket 连接断开")
+          if (result.length > 0) {
+            if (result.endsWith("，")) {
+              result = result.slice(0, -1)
+            }
+            $("#resultPanel").html(result + "。")
+            result = ""
+          }
+        }
+        wenetWs.onerror = function () { console.log("WebSocket 连接失败") }
+      }
+    }
+
+    function parseResult(data) {
+      var data = JSON.parse(data)
+      if (data.type == 'partial_result') {
+        nbest = JSON.parse(data.nbest)
+        var sentence = nbest[0].sentence
+        if (sentence.length > 0) {
+          $("#resultPanel").html(result + sentence)
+        }
+      } else if (data.type == 'final_result') {
+        //nbest = JSON.parse(data.nbest)
+        $("#resultPanel").html(data.res)
+        //var sentence = nbest[0].sentence
+        //if (sentence.length > 0) {
+        //  result += sentence + "，"
+        //  $("#resultPanel").html(result)
+        //}
+        //console.log(nbest)
+      }
+    }
+
+    function TransferUpload(number, blobOrNull, duration, blobRec, isClose) {
+      if (blobOrNull) {
+        var blob = blobOrNull
+        var encTime = blob.encTime
+        var reader = new FileReader()
+        reader.onloadend = function () { wenetWs.send(reader.result) }
+        reader.readAsArrayBuffer(blob)
+      }
+    }
+
+    function startRecording() {
+      // Check socket url
+      var socketUrl = $('#socketUrl').val()
+      if (!socketUrl.trim()) {
+        alert('请输入 WebSocket 服务器地址，如：ws://127.0.0.1:10086')
+        $('#socketUrl').focus()
+        return
+      }
+      // init recorder
+      SoundRecognizer.init({
+        soundType: 'pcm',
+        sampleRate: 16000,
+        recwaveElm: '.recwave',
+        translerCallBack: TransferUpload
+      })
+      openWebSocket(socketUrl)
+
+      // Change button state
+      $('#beginBtn').hide()
+      $('#endBtn, #timeBox').addClass('show')
+      // Start countdown
+      var seconds = 180
+      $('#timeCount').text(seconds)
+      timeLoop = setInterval(function () {
+        seconds--
+        $('#timeCount').text(seconds)
+        if (seconds === 0) {
+          stopRecording()
+        }
+      }, 1000)
+    }
+
+    function stopRecording() {
+      wenetWs.send(JSON.stringify({ "signal": "end" }))
+      SoundRecognizer.recordClose()
+
+      $('#endBtn').add($('#timeBox')).removeClass('show')
+      $('#beginBtn').show()
+      $('#timeCount').text('')
+      clearInterval(timeLoop)
+    }
+  </script>
+</body>
+
+</html>
